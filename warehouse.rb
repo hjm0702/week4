@@ -1,6 +1,6 @@
 require 'minitest/autorun'
 require 'json'
-# require 'mocha/minitest'
+require 'mocha/minitest'
 
 class ShoppingCart
 
@@ -36,11 +36,22 @@ class WarehouseOrder
 
   def initialize(cart)
     @shopping_cart = cart
-    generate_shipments
   end
 
   def generate_shipments
-    # Naive implementation: One box per item
+    @shipments = []
+    # Naive implementation: one box per item
+    @shopping_cart.products.each do |product|
+      box = Box.new
+      box.size = "Large"
+      box.products = [product]
+      box.tracking_number = generate_tracking_number
+      @shipments.push(box)
+    end
+  end
+
+  def generate_tracking_number
+    return "1Z#{rand(10000000..99999999)}"
   end
 
 end
@@ -49,6 +60,12 @@ end
 class ShoppingCartTest < Minitest::Test
 
   def test_calculate_total
+    cart = ShoppingCart.new
+
+    cart.add('B01DFKC2SO')
+    cart.add('B01JP436TS')
+
+    assert_equal 49.99+108.00, cart.total
   end
 
 end
@@ -56,10 +73,23 @@ end
 class WarehouseTest < Minitest::Test
 
   def test_one_shipment_per_item
+    cart = ShoppingCart.new
+    cart.add('B01DFKC2SO')
+    cart.add('B01JP436TS')
+
+    warehouse = WarehouseOrder.new(cart)
+    warehouse.generate_shipments
+
+    assert_equal 2, warehouse.shipments.length
 
   end
 
   def test_tracking_number_applied_to_box
+    cart = ShoppingCart.new
+    cart.add('B01DFKC2SO')
+    warehouse = WarehouseOrder.new(cart)
+    warehouse.expects(:generate_tracking_number).returns("1Z123456789")
 
+    warehouse.generate_shipments
   end
 end
